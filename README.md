@@ -1,2 +1,0 @@
-# SCI
-Structured Collaboration Index
