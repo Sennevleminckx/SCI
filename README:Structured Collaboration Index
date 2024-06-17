@@ -1,15 +1,14 @@
-# SCI
-## Structured Collaboration Index
+# README:Structured Collaboration Index
 
 This repository contains Python code designed to analyze team collaboration data and compute a collaboration index (SCII) for each team based on their collaboration patterns. The analysis involves calculating overlap metrics between collaborators within each team and deriving statistical estimates of collaboration intensity.
-### Dependencies
+## Dependencies
 	•	pandas (version >= 1.0.0): For data manipulation and analysis.
 	•	numpy (version >= 1.18.0): For numerical computing.
 	•	tqdm (version >= 4.0.0): For progress bars during computation.
 	•	itertools: For generating combinations of collaborators.
 
 Make sure these packages are installed before running the script.
-### Input:
+## Input:
    collaborator_bk Team               start                 end
 0           T01_1  T01 2021-02-04 21:01:00 2021-02-05 06:59:00
 1           T01_1  T01 2021-01-14 21:01:00 2021-01-15 06:59:00
@@ -23,7 +22,7 @@ Make sure these packages are installed before running the script.
 
  The start and end columns are converted to datetime objects using pandas.
 
-### Workflow
+## Workflow
 	1.	Data Preprocessing: Convert start and end columns to datetime objects.
 	2.	Team-wise Analysis:
 	  •	Iterate over each unique team in the dataset.
@@ -38,14 +37,14 @@ Make sure these packages are installed before running the script.
 	  •	Store results in a DataFrame including Team, number of unique members (NumMembers), estimated Alpha, Beta, and the SCII (SCII) computed from these parameters.
 	  •	Save results to a CSV file (SCII_analysis_4.csv) in the ./output/ directory.
 
-## Usage
+# Usage
 
 To run the analysis:
 
 	•	Ensure all dependencies are installed.
 	•	Execute the script containing the provided code snippet.
 
-## Notes
+# Notes
 
 	•	The SCII (SCII) provides insights into team collaboration intensity, with higher values indicating stronger collaboration patterns.
 	•	Ensure the input data is correctly formatted with datetime columns for accurate analysis.
