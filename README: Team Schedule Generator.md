@@ -25,14 +25,14 @@ The team_details dictionary specifies:
 
 ## Workflow
 
-	1.	Date Range Initialization: Generates a list of all dates within the specified start_date and end_date.
-	2.	Adjusting Maximum Days: Calculates the maximum days each collaborator can work based on their proportion (full-time or part-time).
-	3.	Shuffling Dates: Randomizes the order of dates to introduce variability in scheduling.
-	4.	Generating Collaborators:
+	1. Date Range Initialization: Generates a list of all dates within the specified start_date and end_date.
+	2. Adjusting Maximum Days: Calculates the maximum days each collaborator can work based on their proportion (full-time or part-time).
+	3. Shuffling Dates: Randomizes the order of dates to introduce variability in scheduling.
+	4. Generating Collaborators:
   		• Iterates over each team and creates collaborators based on team size.
   		•Assigns shifts and work dates to each collaborator while considering their full-time or part-time status and the specified maximum shifts.
-	5.	Creating Schedule Entries: Constructs schedule entries with collaborator IDs, team IDs, start times, and end times for each assigned shift.
-	6.	Output: Returns a DataFrame (schedule_df) containing the generated schedule entries, sorted by collaborator and start time.
+	5. Creating Schedule Entries: Constructs schedule entries with collaborator IDs, team IDs, start times, and end times for each assigned shift.
+	6. Output: Returns a DataFrame (schedule_df) containing the generated schedule entries, sorted by collaborator and start time.
 
 ## Usage
 
