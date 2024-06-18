@@ -3,6 +3,31 @@ import numpy as np
 from datetime import datetime, timedelta
 
 def generate_schedule(team_details):
+    """Generates a work schedule for teams based on provided details and constraints.
+
+    This function takes a dictionary containing team information (start/end dates, 
+    team composition, shifts, and preferences) and produces a schedule DataFrame.
+
+    Args:
+        team_details (dict): A dictionary containing the following keys:
+            * 'start_date' (datetime): The start date of the schedule.
+            * 'end_date' (datetime): The end date of the schedule.
+            * 'teams' (dict): A dictionary of team details, where each key is a team name 
+                              and the value is a dictionary containing:
+                * 'team_size_fulltime' (int): Number of full-time collaborators.
+                * 'team_size_parttime' (int): Number of part-time collaborators.
+                * 'shifts' (list): List of available shifts (e.g., ["0900-1700", "1000-1800"]).
+                * 'max_shifts_per_collaborator' (int): Maximum shifts per collaborator.
+                * (Optional) 'freedom_level' (int): Level of freedom in shift assignment (1-5).
+
+    Returns:
+        pandas.DataFrame: A DataFrame representing the generated schedule with the following columns:
+            * 'collaborator_bk': Unique identifier for each collaborator.
+            * 'Team': The team to which the collaborator belongs.
+            * 'start': The start datetime of a shift.
+            * 'end': The end datetime of a shift.
+    """
+
     start_date, end_date = team_details['start_date'], team_details['end_date']
     all_dates = [start_date + timedelta(days=x) for x in range((end_date - start_date).days + 1)]
     total_days = len(all_dates)
