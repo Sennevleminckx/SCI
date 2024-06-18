@@ -3,6 +3,19 @@ import numpy as np
 from itertools import combinations
 from tqdm import tqdm
 
+def calculate_overlap(df1, df2):
+    """
+    This method calculates the overlap between two datasets.
+
+    :param df1: The first dataset (pandas DataFrame) containing 'start' and 'end' columns.
+    :param df2: The second dataset (pandas DataFrame) containing 'start' and 'end' columns.
+    :return: The overlap (numpy array) between the two datasets in hours.
+    """
+    latest_start = np.maximum(df1['start'].values[:, None], df2['start'].values)
+    earliest_end = np.minimum(df1['end'].values[:, None], df2['end'].values)
+    overlap = (earliest_end - latest_start) / np.timedelta64(1, 'h')
+    overlap[overlap < 0] = 0
+    return overlap
 
 
 df['start'] = pd.to_datetime(df['start'])
@@ -54,10 +67,9 @@ for team in tqdm(df['Team'].unique(), desc='Processing Teams', unit='team'):
         beta = (1 - mean) * ((mean * (1 - mean) / variance) - 1)
 
     # Append the results
-    results.append({'Team': team, 'NumMembers': num_unique_members, 'Alpha': alpha, 'Beta': beta})
+    results.append({'Team': team,'Alpha': alpha, 'Beta': beta})
 
 # Convert the results into a DataFrame
 results_df = pd.DataFrame(results)
-results_df['SCII'] = (results_df['Alpha'] - results_df['Beta']) / (results_df['Alpha'] + results_df['Beta'])
-results_df.to_csv('./output/SCII_analysis_4.csv', index=False)
+results_df['SCI'] = (results_df['Alpha'] - results_df['Beta']) / (results_df['Alpha'] + results_df['Beta'])
 results_df
