@@ -7,9 +7,11 @@ def calculate_overlap(df1, df2):
     """
     This method calculates the overlap between two datasets.
 
-    :param df1: The first dataset (pandas DataFrame) containing 'start' and 'end' columns.
-    :param df2: The second dataset (pandas DataFrame) containing 'start' and 'end' columns.
-    :return: The overlap (numpy array) between the two datasets in hours.
+    Args:
+        * param df1: The first dataset (pandas DataFrame) containing 'start' and 'end' columns.
+        * param df2: The second dataset (pandas DataFrame) containing 'start' and 'end' columns.
+    Return:
+        * The overlap (numpy array) between the two datasets in hours.
     """
     latest_start = np.maximum(df1['start'].values[:, None], df2['start'].values)
     earliest_end = np.minimum(df1['end'].values[:, None], df2['end'].values)
