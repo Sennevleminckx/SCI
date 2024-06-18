@@ -30,7 +30,7 @@ The team_details dictionary specifies:
 	3. Shuffling Dates: Randomizes the order of dates to introduce variability in scheduling.
 	4. Generating Collaborators:
   		• Iterates over each team and creates collaborators based on team size.
-  		•Assigns shifts and work dates to each collaborator while considering their full-time or part-time status and the specified maximum shifts.
+  		• Assigns shifts and work dates to each collaborator while considering their full-time or part-time status and the specified maximum shifts.
 	5. Creating Schedule Entries: Constructs schedule entries with collaborator IDs, team IDs, start times, and end times for each assigned shift.
 	6. Output: Returns a DataFrame (schedule_df) containing the generated schedule entries, sorted by collaborator and start time.
 
