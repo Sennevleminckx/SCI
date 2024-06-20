@@ -65,6 +65,10 @@ def generate_schedule(team_details):
                 start_datetime = datetime.combine(work_date.date(), start_time.time())
                 end_datetime = datetime.combine(work_date.date(), end_time.time())
 
+                # Adjust end time if it is earlier than start time
+                if end_datetime <= start_datetime:
+                    end_datetime += timedelta(days=1)
+                
                 schedule.append({
                     'collaborator_bk': collaborator_id,
                     'Team': team_bk,
