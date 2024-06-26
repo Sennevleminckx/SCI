@@ -58,7 +58,7 @@ for team in tqdm(df['Team'].unique(), desc='Processing Teams', unit='team'):
 
     # Calculate the sample mean and variance
     mean = np.mean(data_nonzero)
-    variance = np.var(data_nonzero, ddof=0)  # ddof=0 for population variance want we hebben het hele team. ddof = 1 voor sample
+    variance = np.var(data_nonzero, ddof=0)  # ddof=0 for population variance. ddof = 1 voor sample
 
     # Estimate α and β using the method of moments, avoiding division by zero
     if variance == 0 or mean == 1 or mean == 0:
