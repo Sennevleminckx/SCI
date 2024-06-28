@@ -68,7 +68,7 @@ def generate_schedule(team_details):
                 # Adjust end time if it is earlier than start time
                 if end_datetime <= start_datetime:
                     end_datetime += timedelta(days=1)
-                
+
                 schedule.append({
                     'collaborator_bk': collaborator_id,
                     'Team': team_bk,
@@ -80,6 +80,33 @@ def generate_schedule(team_details):
     schedule_df = schedule_df.sort_values(by=['collaborator_bk', 'start']).reset_index(drop=True)
 
     return schedule_df
+
+def adjust_times(row):
+        start_time = datetime.strptime(row['timesheet_interval'] + row['start'], '%Y-%m-%d%H%M')
+        end_time = datetime.strptime(row['timesheet_interval'] + row['end'], '%Y-%m-%d%H%M')
+        if end_time < start_time:
+            end_time += timedelta(days=1)
+        return pd.Series([start_time, end_time], index=['start', 'end'])
+
+    # Splitting 'activity_bk' into 'start' and 'end'
+    df[['start', 'end']] = df['activity_bk'].str.split('-', n=1, expand=True)
+
+    # Convert intervals into 'start' and 'end' datetime objects
+    df[['start', 'end']] = df.apply(adjust_times, axis=1)
+    df.drop(['activity_bk', 'timesheet_interval'], axis=1, inplace=True)
+
+    return df
+
+#Data Cleaning
+df = df[df['activity_bk'].apply(lambda x: x[0].isdigit())]
+df['activity_bk'] = df['activity_bk'].str.split('/').str[0]
+df[['start', 'end']] = df['activity_bk'].str.split('-', n=1, expand=True)
+# From interval to 'start' & 'end'
+df[['start', 'end']] = df.apply(adjust_times, axis=1)
+df.drop('activity_bk', axis=1, inplace=True)
+df.drop('timesheet_interval', axis=1, inplace=True)
+df['start'] = pd.to_datetime(df['start'])
+df['end'] = pd.to_datetime(df['end'])
 
 
 team_details = {
