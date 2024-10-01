@@ -165,5 +165,4 @@ print(schedule_df.head())
 - **pandas**
 
 ## License
-
-This code is released under the [MIT License](https://opensource.org/licenses/MIT).
+This project is licensed under the terms of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
