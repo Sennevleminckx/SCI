@@ -1,47 +1,169 @@
-# README: Team Schedule Generator
+# Schedule Generator Function
 
-This repository contains Python code designed to generate a collaborative schedule for teams based on specified details and constraints. The generated schedule includes shifts assigned to collaborators over a defined period.
+## Overview
 
-## Dependencies
+The **Schedule Generator** is a Python function designed to create randomized work schedules for collaborators across different teams. It accounts for various parameters such as full-time and part-time staff, shift assignments, maximum shifts per collaborator, and the level of freedom in shift selection.
 
-	• pandas (version >= 1.0.0): For data manipulation and analysis.
-	• numpy (version >= 1.18.0): For numerical computing.
-	• datetime: For date and time manipulation.
+## Table of Contents
 
-Ensure these packages are installed before running the script.
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Parameters](#parameters)
+- [Return Value](#return-value)
+- [Detailed Explanation](#detailed-explanation)
+- [Example](#example)
+- [Dependencies](#dependencies)
+- [License](#license)
 
-## Team Details
+## Features
 
-The team_details dictionary specifies:
+- **Randomized Scheduling**: Generates a random schedule while adhering to specified constraints.
+- **Full-Time and Part-Time Support**: Adjusts working days based on employment status.
+- **Shift Preferences**: Assigns shifts based on the collaborator's assigned shifts and freedom level.
+- **Date Range Flexibility**: Allows scheduling over any given date range.
+- **Data Processing**: Cleans and processes data to provide start and end times for each shift.
 
-	• start_date: Start date for the schedule.
-	• end_date: End date for the schedule.
-	• teams: This is a nested dictionary under the teams key, where each key represents a unique team identifier (team_bk). 
-    	• team_size_fulltime: Number of full-time collaborators in the team.
-    	• team_size_parttime: Number of part-time collaborators in the team. (= random work % of between 0.5 - 0.9)
-    	• shifts: List of strings representing the shifts available for the team. Each string format is "HHMM-HHMM", indicating the start and end times of a shift.
-    	• max_shifts_per_collaborator: Maximum number of shifts that can be assigned to a single collaborator.
-    	• freedom_level: Optional parameter indicating the flexibility level for shift assignment. Default is 1.0, where 1.0 means full flexibility. (note: very senstive parameter, increments of 	0.001 suffice)
+## Installation
 
-## Workflow
-
-	1. Date Range Initialization: Generates a list of all dates within the specified start_date and end_date.
-	2. Adjusting Maximum Days: Calculates the maximum days each collaborator can work based on their proportion (full-time or part-time).
-	3. Shuffling Dates: Randomizes the order of dates to introduce variability in scheduling.
-	4. Generating Collaborators:
-  		• Iterates over each team and creates collaborators based on team size.
-  		• Assigns shifts and work dates to each collaborator while considering their full-time or part-time status and the specified maximum shifts.
-	5. Creating Schedule Entries: Constructs schedule entries with collaborator IDs, team IDs, start times, and end times for each assigned shift.
-	6. Output: Returns a DataFrame (schedule_df) containing the generated schedule entries, sorted by collaborator and start time.
+No special installation is required beyond having the necessary Python packages installed.
 
 ## Usage
 
-To generate a schedule:
+```python
+schedule_df = generate_schedule(team_details, seed=None)
+```
 
-	• Define team_details with the required parameters.
-	• Execute the script containing the provided code snippet.
+- **`team_details`**: A dictionary containing team configurations and scheduling parameters.
+- **`seed`** *(optional)*: An integer to set the random seed for reproducibility.
 
-## Notes
+## Parameters
 
-	• The script ensures randomness in shift assignments and flexibility in scheduling, respecting team-specific constraints.
-	• Adjustments such as shift preferences and freedom levels can be configured in team_details to tailor the scheduling process.
+### `team_details`
+
+A dictionary with the following structure:
+
+```python
+team_details = {
+    'start_date': datetime object,
+    'end_date': datetime object,
+    'teams': {
+        'team_identifier': {
+            'team_size_fulltime': int,
+            'team_size_parttime': int,
+            'shifts': list of shift strings (e.g., ['0800-1600', '1600-0000']),
+            'max_shifts_per_collaborator': int,
+            'freedom_level': float between 0 and 1 (optional)
+        },
+        # Add more teams as needed
+    }
+}
+```
+
+- **`start_date`**: The start date for scheduling (datetime object).
+- **`end_date`**: The end date for scheduling (datetime object).
+- **`teams`**: A dictionary of team configurations.
+
+#### Team Configuration Parameters
+
+- **`team_size_fulltime`**: Number of full-time collaborators.
+- **`team_size_parttime`**: Number of part-time collaborators.
+- **`shifts`**: A list of shift strings in 'HHMM-HHMM' format.
+- **`max_shifts_per_collaborator`**: Maximum number of different shifts a collaborator can have.
+- **`freedom_level`** *(optional)*: A float between 0 and 1 indicating the randomness in shift assignment.
+  - **Default**: `1` (maximum freedom).
+
+### `seed`
+
+- **Type**: `int`
+- **Description**: An optional seed for random number generation to ensure the same schedule is produced every time.
+- **Default**: `None`
+
+## Return Value
+
+The function returns a `pandas.DataFrame` with the following columns:
+
+- **`collaborator_bk`**: Unique identifier for the collaborator.
+- **`Team`**: Team identifier.
+- **`start`**: Start datetime of the shift.
+- **`end`**: End datetime of the shift.
+- **`month`**: The quarter (e.g., '2023Q1') in which the shift occurs.
+
+## Detailed Explanation
+
+1. **Random Seed Initialization**: If a seed is provided, the random number generator is initialized with it for reproducibility.
+
+2. **Date Generation**: Generates a list of all dates within the specified `start_date` and `end_date`.
+
+3. **Date Shuffling**: Randomizes the order of dates to evenly distribute shifts across the schedule.
+
+4. **Schedule Generation**:
+   - **Team Iteration**: Iterates over each team in `team_details`.
+   - **Collaborator Determination**: Calculates the total number of collaborators and determines their employment status (full-time or part-time).
+   - **Working Days Adjustment**: Adjusts the maximum number of working days based on whether the collaborator is full-time or part-time.
+   - **Shift Assignment**:
+     - **Shift Selection**: Assigns shifts to collaborators based on `max_shifts_per_collaborator`.
+     - **Freedom Level Application**: Determines shift assignment randomness using `freedom_level`.
+   - **Work Date Selection**: Randomly selects dates for each collaborator's shifts.
+
+5. **Data Processing**:
+   - **Filtering**: Removes any shifts that do not start with a digit (ensuring valid shift formats).
+   - **Time Adjustment**: Splits shift strings into start and end times and adjusts for overnight shifts.
+   - **Datetime Conversion**: Converts start and end times into datetime objects.
+   - **Quarter Calculation**: Adds a column to represent the quarter of the year.
+
+## Example
+
+```python
+from datetime import datetime
+import pandas as pd
+
+# Define team details
+team_details = {
+    'start_date': datetime(2023, 1, 1),
+    'end_date': datetime(2023, 3, 31),
+    'teams': {
+        'TeamAlpha': {
+            'team_size_fulltime': 3,
+            'team_size_parttime': 2,
+            'shifts': ['0800-1600', '1600-0000'],
+            'max_shifts_per_collaborator': 2,
+            'freedom_level': 0.7
+        },
+        'TeamBeta': {
+            'team_size_fulltime': 4,
+            'team_size_parttime': 1,
+            'shifts': ['0900-1700', '1700-0100'],
+            'max_shifts_per_collaborator': 1
+            # freedom_level defaults to 1
+        }
+    }
+}
+
+# Generate the schedule
+schedule_df = generate_schedule(team_details, seed=123)
+
+# Display the first few rows of the schedule
+print(schedule_df.head())
+```
+
+**Sample Output**:
+
+```
+  collaborator_bk       Team               start                 end   month
+0     TeamBeta_1   TeamBeta 2023-01-15 09:00:00 2023-01-15 17:00:00  2023Q1
+1   TeamAlpha_2  TeamAlpha 2023-02-10 16:00:00 2023-02-11 00:00:00  2023Q1
+2   TeamAlpha_4  TeamAlpha 2023-03-05 08:00:00 2023-03-05 16:00:00  2023Q1
+3     TeamBeta_3   TeamBeta 2023-01-20 09:00:00 2023-01-20 17:00:00  2023Q1
+4   TeamAlpha_5  TeamAlpha 2023-02-25 08:00:00 2023-02-25 16:00:00  2023Q1
+```
+
+## Dependencies
+
+- **Python 3.x**
+- **NumPy**
+- **pandas**
+
+## License
+
+This code is released under the [MIT License](https://opensource.org/licenses/MIT).
