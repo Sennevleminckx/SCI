@@ -2,7 +2,7 @@
 
 ## Overview
 
-The **calculate_SCI_scores function** computes the Structured Collaboration Index (SCI) scores for each team within a dataset. SCI scores are statistical measures that quantify the level of collaboration among team members based on their overlapping work hours.
+The **calculate_SCI_scores** function computes the Structured Collaboration Index (SCI) scores for each team within a dataset. SCI scores are statistical measures that quantify the level of collaboration among team members based on their overlapping work hours.
 
 This function analyzes the overlapping work schedules of team members to determine how closely they collaborate. It calculates an overall SCI score for each team and, if applicable, separate SCI scores for different collaboration modes within the team if the distribtion is bimodal.
 
@@ -101,14 +101,14 @@ for team in tqdm(df['Team'].unique(), desc='Processing Teams', unit='team'):
 
 3. **Overlap Calculation**
 
-- **Pairwise Combinations**: Iterates over all possible pairs of collaborators within the team using itertools.combinations.
+- **Pairwise Combinations**: Iterates over all possible pairs of collaborators within the team using `itertools.combinations`.
 - **Overlap Computation**:
   - Uses the `calculate_overlap(df1, df2)` function to compute the total overlapping hours between two collaborators.
 - **Algorithm**:
   - Converts the `start` and `end` times of both collaborators to NumPy arrays.
   - Computes the maximum of the start times and the minimum of the end times to find overlapping intervals.
-  - Calculates the overlap duration in hours, setting negative overlaps to zero.
-  - Sums all overlaps to get the total overlapping hours.
+  - Calculates the `overlap` duration in hours, setting negative overlaps to zero.
+  - Sums all overlaps to get the total overlapping hours (`total_overlap`).
 
 ```python
 def calculate_overlap(df1, df2):
@@ -209,13 +209,13 @@ def compute_SCI(mode_values):
 # Compute SCI_team
 SCI_team = compute_SCI(data_nonzero)
 ```
-7. Bimodality Check
+7. **Bimodality Check**
 
 - **Data Sufficiency**: Proceeds if there is more than one non-zero overlap value.
 - **GMM Fitting**:
-  - Fits Gaussian Mixture Models (GMMs) with one and two components to the data using [GaussianMixture](https://scikit-learn.org/stable/modules/mixture.html) from scikit-learn.
+  - Fits *Gaussian Mixture Models (GMMs)* with one and two components to the data using [GaussianMixture](https://scikit-learn.org/stable/modules/mixture.html) from scikit-learn.
 - **Model Selection**:
-    - Computes the Bayesian Information Criterion (BIC) for both models.
+    - Computes the *Bayesian Information Criterion (BIC)* for both models.
     - If the BIC of the two-component model is lower than that of the one-component model, the data is considered bimodal.
 
 ```python
@@ -239,13 +239,13 @@ if len(data_nonzero) > 1:
         # Proceed to find intersection and compute SCI_ext and SCI_core
 ```
 
-8. Mode Separation
+8. **Mode Separation**
 
 - **Intersection Point Detection**:
   - Uses the `find_gaussian_intersection(gmm, x_range)` function to find the `intersection` point (threshold) between the two Gaussian components.
 - **Algorithm**:
   - Defines a `function gaussians_diff(x)` that computes the difference between the weighted log probabilities of the two Gaussian components at point x.
-  - Uses Brent’s method ([brentq](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.brentq.html)) to find the root of `gaussians_diff(x)`, which is the `intersection` point.
+  - Uses *Brent’s method* ([brentq](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.brentq.html)) to find the root of `gaussians_diff(x)`, which is the `intersection` point.
 
 ```python
 def find_gaussian_intersection(gmm, x_range):
