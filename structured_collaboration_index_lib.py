@@ -1,113 +1,110 @@
+import warnings
+import numpy as np
+import pandas as pd
+from itertools import combinations
+from tqdm import tqdm
+from sklearn.mixture import GaussianMixture
+from scipy.optimize import brentq
+
+# Suppress specific FutureWarning
+warnings.filterwarnings(
+    "ignore",
+    category=FutureWarning,
+    message="use_inf_as_na option is deprecated and will be removed in a future version"
+)
+
+def calculate_overlap(df1, df2):
+    """
+    Calculate the total overlap in hours between two collaborators.
+
+    Parameters:
+    - df1 (DataFrame): DataFrame for collaborator 1 with 'start' and 'end' columns.
+    - df2 (DataFrame): DataFrame for collaborator 2 with 'start' and 'end' columns.
+
+    Returns:
+    - total_overlap (float): The total overlap in hours.
+    """
+    # Convert start and end times to NumPy arrays
+    start1 = df1['start'].values.astype('datetime64[ns]')
+    end1 = df1['end'].values.astype('datetime64[ns]')
+    start2 = df2['start'].values.astype('datetime64[ns]')
+    end2 = df2['end'].values.astype('datetime64[ns]')
+
+    # Compute the maximum of the start times and the minimum of the end times
+    latest_start = np.maximum(start1[:, None], start2)
+    earliest_end = np.minimum(end1[:, None], end2)
+
+    # Calculate the overlap in hours
+    overlap = (earliest_end - latest_start) / np.timedelta64(1, 'h')
+    overlap[overlap < 0] = 0  # Set negative overlaps to zero
+
+    # Sum all overlaps to get the total overlap
+    total_overlap = np.sum(overlap)
+
+    return total_overlap
+
+def compute_SCI(mode_values):
+    """
+    Compute the SCI value for a set of mode values.
+
+    Parameters:
+    - mode_values (array-like): The mode values to compute SCI for.
+
+    Returns:
+    - SCI (float): The computed SCI value.
+    """
+    if len(mode_values) == 0:
+        return np.nan
+
+    mean = np.mean(mode_values)
+    variance = np.var(mode_values, ddof=0)
+
+    if variance == 0 or mean in [0, 1] or np.isnan(mean):
+        return np.nan
+
+    alpha = mean * ((mean * (1 - mean) / variance) - 1)
+    beta = (1 - mean) * ((mean * (1 - mean) / variance) - 1)
+
+    if np.isnan(alpha) or np.isnan(beta) or (alpha + beta) == 0:
+        return np.nan
+
+    SCI = (alpha - beta) / (alpha + beta)
+    return SCI
+
+def find_gaussian_intersection(gmm, x_range):
+    """
+    Find the intersection point between two Gaussian components in a GMM.
+
+    Parameters:
+    - gmm (GaussianMixture): The fitted Gaussian Mixture Model with two components.
+    - x_range (tuple): The range of x values to search for the intersection.
+
+    Returns:
+    - intersection (float): The x-value where the two Gaussians intersect.
+    """
+    def gaussians_diff(x):
+        return (
+            gmm.weights_[0] * gmm._estimate_weighted_log_prob(np.array([[x]]))[:, 0] -
+            gmm.weights_[1] * gmm._estimate_weighted_log_prob(np.array([[x]]))[:, 1]
+        )[0]
+
+    try:
+        intersection = brentq(gaussians_diff, x_range[0], x_range[1])
+        return intersection
+    except ValueError:
+        return None
+
 def calculate_SCI_scores(df):
     """
     Calculate Structured Collaboration Index (SCI) scores for each team in the dataframe.
 
     Parameters:
     - df (DataFrame): The input dataframe containing at least the following columns:
-        'start', 'end', 'Team', 'collaborator_bk', 'timesheet_interval'
+        'start', 'end', 'Team', 'collaborator_bk'
 
     Returns:
     - results_df (DataFrame): A dataframe containing SCI scores and additional information for each team.
     """
-    import warnings
-    import numpy as np
-    import pandas as pd
-    from itertools import combinations
-    from tqdm import tqdm
-    from sklearn.mixture import GaussianMixture
-    from scipy.optimize import brentq
-
-    # Suppress specific FutureWarning
-    warnings.filterwarnings(
-        "ignore",
-        category=FutureWarning,
-        message="use_inf_as_na option is deprecated and will be removed in a future version"
-    )
-
-    # Define the calculate_overlap function (your original version)
-    def calculate_overlap(df1, df2):
-        """
-        Calculate the total overlap in hours between two collaborators.
-
-        Parameters:
-        - df1 (DataFrame): DataFrame for collaborator 1 with 'start' and 'end' columns.
-        - df2 (DataFrame): DataFrame for collaborator 2 with 'start' and 'end' columns.
-
-        Returns:
-        - total_overlap (float): The total overlap in hours.
-        """
-        # Convert start and end times to NumPy arrays
-        start1 = df1['start'].values.astype('datetime64[ns]')
-        end1 = df1['end'].values.astype('datetime64[ns]')
-        start2 = df2['start'].values.astype('datetime64[ns]')
-        end2 = df2['end'].values.astype('datetime64[ns]')
-
-        # Compute the maximum of the start times and the minimum of the end times
-        latest_start = np.maximum(start1[:, None], start2)
-        earliest_end = np.minimum(end1[:, None], end2)
-
-        # Calculate the overlap in hours
-        overlap = (earliest_end - latest_start) / np.timedelta64(1, 'h')
-        overlap[overlap < 0] = 0  # Set negative overlaps to zero
-
-        # Sum all overlaps to get the total overlap
-        total_overlap = np.sum(overlap)
-
-        return total_overlap
-
-    # New function to compute SCI given mode values
-    def compute_SCI(mode_values):
-        """
-        Compute the SCI value for a set of mode values.
-
-        Parameters:
-        - mode_values (array-like): The mode values to compute SCI for.
-
-        Returns:
-        - SCI (float): The computed SCI value.
-        """
-        if len(mode_values) == 0:
-            return np.nan
-
-        mean = np.mean(mode_values)
-        variance = np.var(mode_values, ddof=0)
-
-        if variance == 0 or mean in [0, 1] or np.isnan(mean):
-            return np.nan
-
-        alpha = mean * ((mean * (1 - mean) / variance) - 1)
-        beta = (1 - mean) * ((mean * (1 - mean) / variance) - 1)
-
-        if np.isnan(alpha) or np.isnan(beta) or (alpha + beta) == 0:
-            return np.nan
-
-        SCI = (alpha - beta) / (alpha + beta)
-        return SCI
-
-    # Function to find the intersection point of two Gaussian PDFs
-    def find_gaussian_intersection(gmm, x_range):
-        """
-        Find the intersection point between two Gaussian components in a GMM.
-
-        Parameters:
-        - gmm (GaussianMixture): The fitted Gaussian Mixture Model with two components.
-        - x_range (tuple): The range of x values to search for the intersection.
-
-        Returns:
-        - intersection (float): The x-value where the two Gaussians intersect.
-        """
-        def gaussians_diff(x):
-            return (
-                    gmm.weights_[0] * gmm._estimate_weighted_log_prob(np.array([[x]]))[:, 0] -
-                    gmm.weights_[1] * gmm._estimate_weighted_log_prob(np.array([[x]]))[:, 1]
-            )[0]
-
-        try:
-            intersection = brentq(gaussians_diff, x_range[0], x_range[1])
-            return intersection
-        except ValueError:
-            return None
-
     # Ensure time columns are in datetime format
     df['start'] = pd.to_datetime(df['start'])
     df['end'] = pd.to_datetime(df['end'])
