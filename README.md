@@ -9,17 +9,17 @@ The project consists of two main components:
 2. **SCI Calculator**: A function that computes SCI scores for each team by analyzing the overlapping work schedules, providing insights into collaboration patterns within teams.
 
 ## Table of Contents
-- [Features](#Features)
+- [Features](#features)
 - [Installation](#installation)
-- [Project Structure](#Project Structure)
+- [Project Structure](#project-structure)
 - [Usage](#usage)
-  - [1. Generate Schedules](#1. Generating Schedules)
-  - [2. Calculating SCI Scores](#2. Calculating SCI Scores)
+  - [1. Generating Schedules](#1-generating-schedules)
+  - [2. Calculating SCI Scores](#2-calculating-sci-scores)
 - [Example](#examples)
 - [Dependencies](#dependencies)
 - [License](#license)
-- [Detailed Explanation of Schedule Generation](#Detailed Explanation of Schedule Generation)
-- [Detailed Explanation of SCI calculation](#Detailed Explanation of SCI calculation)
+- [Detailed Explanation of Schedule Generation](#detailed-explanation-of-schedule-generation)
+- [Detailed Explanation of SCI Calculation](#detailed-explanation-of-sci-calculation)
 
 ## Features
 - **Randomized Scheduling**: Generates work schedules with customizable parameters for teams and collaborators.
