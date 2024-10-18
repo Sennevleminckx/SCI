@@ -5,8 +5,8 @@ This project provides tools for generating randomized work schedules for teams a
 
 The project consists of two main components:
 
-1. **Schedule Generator**: A function that creates randomized work schedules for collaborators across different teams, considering factors like full-time/part-time status, shift assignments, and shift preferences.
-2. **SCI Calculator**: A function that computes SCI scores for each team by analyzing the overlapping work schedules, providing insights into collaboration patterns within teams.
+1. **`Schedule Generator`**: A function that creates randomized work schedules for collaborators across different teams, considering factors like full-time/part-time status, shift assignments, and shift preferences.
+2. **`SCI Calculator`**: A function that computes SCI scores for each team by analyzing the overlapping work schedules, providing insights into collaboration patterns within teams.
 
 ## Table of Contents
 - [Features](#features)
@@ -31,15 +31,15 @@ The project consists of two main components:
 
 
 ## Installation
-Ensure you have **Python 3.x** installed along with the required packages. You can install the dependencies using pip:
+Ensure you have **Python 3.x** installed along with the required packages. You can install the dependencies using `pip`:
 
 ```python
 pip install numpy pandas scipy scikit-learn tqdm
 ```
 
 ## Project Structure
-- **generate_schedule_lib.py**: Contains the generate_schedule function and helper functions for schedule generation.
-- **sci_lib.py**: Contains the calculate_SCI_scores function and helper functions for SCI computation.
+- **generate_schedule_lib.py**: Contains the `generate_schedule` function and helper functions for schedule generation.
+- **sci_lib.py**: Contains the `calculate_SCI_scores` function and helper functions for SCI computation.
 - **workbench.py**: Script demonstrating how to use the libraries.
 - **README.md**: Project documentation (this file).
 
@@ -81,14 +81,14 @@ team_details = {
 ```python
 schedule_df = generate_schedule(team_details, seed=42)
 ```
-note: Due to the random elements in schedule generation, results may vary between runs unless a seed is set (Seed is optional, Default = None).
+note: Due to the random elements in schedule generation, results may vary between runs unless a `seed` is set (seed is optional, Default = None).
 
 #### Understanding the output
 - schedule_df is a pandas DataFrame containing:
-  - collaborator_bk: Unique identifier for each collaborator.
-  - Team: Team identifier.
-  - start: Start datetime of the shift.
-  - end: End datetime of the shift.
+  - `collaborator_bk`: Unique identifier for each collaborator.
+  - `Team`: Team identifier.
+  - `start`: Start datetime of the shift.
+  - `end`: End datetime of the shift.
     
 ### 2. Calculating SCI Scores
 #### Importing the function
@@ -192,7 +192,7 @@ This project is licensed under the terms of the [Apache License 2.0](https://www
 
 ## Detailed Explanation of Schedule Generation
 
-1. **Random Seed Initialization**: If a seed is provided, the random number generator is initialized with it for reproducibility.
+1. **Random Seed Initialization**: If a `seed` is provided, the random number generator is initialized with it for reproducibility.
 
 2. **Date Generation**: Generates a list of all dates within the specified `start_date` and `end_date`.
 
