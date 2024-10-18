@@ -1,6 +1,6 @@
 import pandas as pd
 from generate_schedule_lib import generate_schedule
-from structured_collaboration_index_lib import calculate_SCI_scores
+from sci_lib import calculate_SCI_scores
 
 # Define team details
 team_details = {
