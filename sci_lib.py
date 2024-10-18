@@ -17,12 +17,12 @@ def calculate_overlap(df1, df2):
     """
     Calculate the total overlap in hours between two collaborators.
 
-    Parameters:
-    - df1 (DataFrame): DataFrame for collaborator 1 with 'start' and 'end' columns.
-    - df2 (DataFrame): DataFrame for collaborator 2 with 'start' and 'end' columns.
+    Args:
+        df1 (pandas.DataFrame): DataFrame for collaborator 1 with 'start' and 'end' columns.
+        df2 (pandas.DataFrame): DataFrame for collaborator 2 with 'start' and 'end' columns.
 
     Returns:
-    - total_overlap (float): The total overlap in hours.
+        float: The total overlap in hours.
     """
     # Convert start and end times to NumPy arrays
     start1 = df1['start'].values.astype('datetime64[ns]')
@@ -45,13 +45,13 @@ def calculate_overlap(df1, df2):
 
 def compute_SCI(mode_values):
     """
-    Compute the SCI value for a set of mode values.
+    Compute the Structured Collaboration Index (SCI) value for a set of mode values.
 
-    Parameters:
-    - mode_values (array-like): The mode values to compute SCI for.
+    Args:
+        mode_values (array-like): The mode values to compute SCI for.
 
     Returns:
-    - SCI (float): The computed SCI value.
+        float: The computed SCI value, or np.nan if not computable.
     """
     if len(mode_values) == 0:
         return np.nan
@@ -73,14 +73,14 @@ def compute_SCI(mode_values):
 
 def find_gaussian_intersection(gmm, x_range):
     """
-    Find the intersection point between two Gaussian components in a GMM.
+    Find the intersection point between two Gaussian components in a Gaussian Mixture Model (GMM).
 
-    Parameters:
-    - gmm (GaussianMixture): The fitted Gaussian Mixture Model with two components.
-    - x_range (tuple): The range of x values to search for the intersection.
+    Args:
+        gmm (GaussianMixture): The fitted GMM with two components.
+        x_range (tuple): The range of x values to search for the intersection.
 
     Returns:
-    - intersection (float): The x-value where the two Gaussians intersect.
+        float or None: The x-value where the two Gaussians intersect, or None if not found.
     """
     def gaussians_diff(x):
         return (
@@ -98,12 +98,15 @@ def calculate_SCI_scores(df):
     """
     Calculate Structured Collaboration Index (SCI) scores for each team in the dataframe.
 
-    Parameters:
-    - df (DataFrame): The input dataframe containing at least the following columns:
-        'start', 'end', 'Team', 'collaborator_bk'
+    Args:
+        df (pandas.DataFrame): The input DataFrame containing at least the following columns:
+            - 'start': datetime
+            - 'end': datetime
+            - 'Team': int
+            - 'collaborator_bk': str
 
     Returns:
-    - results_df (DataFrame): A dataframe containing SCI scores and additional information for each team.
+        pandas.DataFrame: A DataFrame containing SCI scores and additional information for each team.
     """
     # Ensure time columns are in datetime format
     df['start'] = pd.to_datetime(df['start'])
