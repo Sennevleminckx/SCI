@@ -5,30 +5,30 @@ This project provides tools for generating randomized work schedules for teams a
 
 The project consists of two main components:
 
-1. **`Schedule Generator`**: A function that creates randomized work schedules for collaborators across different teams, considering factors like full-time/part-time status, shift assignments, and shift preferences.
-2. **`SCI Calculator`**: A function that computes SCI scores for each team by analyzing the overlapping work schedules, providing insights into collaboration patterns within teams.
+1.**`SCI Calculator`**: A function that computes SCI scores for each team by analyzing the overlapping work schedules, providing insights into collaboration patterns within teams.
+2. **`Schedule Generator`**: A script used to generate randomized work schedules for collaborators across different teams. This is primarily designed for performing sensitivity analyses on the SCI, as utilized in research studies. If you have your own dataset with schedules, you can directly use the `SCI Calculator` without generating new schedules.
+
+*Note: The Schedule Generator is used to 
 
 ## Table of Contents
 - [Features](#features)
 - [Installation](#installation)
 - [Project Structure](#project-structure)
 - [Usage](#usage)
-  - [1. Generating Schedules](#1-generating-schedules)
-  - [2. Calculating SCI Scores](#2-calculating-sci-scores)
+  - [1. Calculating SCI Scores](#1-calculating-sci-scores)
+  - [2. Generating Schedules](#2-generating-schedules)
 - [Example](#examples)
 - [Dependencies](#dependencies)
 - [License](#license)
-- [Detailed Explanation of Schedule Generation](#detailed-explanation-of-schedule-generation)
 - [Detailed Explanation of SCI Calculation](#detailed-explanation-of-sci-calculation)
+- [Detailed Explanation of Schedule Generation](#detailed-explanation-of-schedule-generation)
 - [Additional Notes](#additional-notes)
 
 ## Features
-- **Randomized Scheduling**: Generates work schedules with customizable parameters for teams and collaborators.
-- **Full-Time and Part-Time Support**: Adjusts working days and hours based on employment status.
-- **Shift Preferences**: Allows for varying degrees of randomness in shift assignments.
-- **Overlap Calculation**: Computes total overlapping hours between collaborators.
 - **SCI Computation**: Calculates overall SCI scores and separate scores for different collaboration modes within teams.
+- **Overlap Calculation**: Computes total overlapping hours between collaborators.
 - **Gaussian Mixture Modeling**: Uses Gaussian Mixture Models to identify collaboration modes.
+- **Randomized Scheduling **(Optional): Generates work schedules with customizable parameters for teams and collaborators, primarily for sensitivity analyses.
 
 
 ## Installation
@@ -45,8 +45,37 @@ pip install numpy pandas scipy scikit-learn tqdm
 - **README.md**: Project documentation (this file).
 
 ## Usage
+   
+### 1. Calculating SCI Scores
+#### Importing the function
+```python
+from sci_lib import calculate_SCI_scores
+```
+#### Calculating the SCI scores
 
-### 1. Generating Schedules
+```python
+results_df = calculate_SCI_scores(df)
+```
+
+**df**: A pandas DataFrame containing the necessary column:
+- `start`: Start datetime of each shift.
+- `end`: End datetime of each shift.
+- `Team`: Identifier for the team (integer type).
+- `collaborator_bk`: Unique identifier for each collaborator.
+
+#### Understanding the Output:
+- **Type**: pandas.DataFrame
+- **Description**: A DataFrame containing the SCI scores and additional information for each team.
+- **Columns**:
+  - `Team`: Team identifier.
+  - `NumMembers`: Number of unique collaborators in the team.
+  - `SCI_team`: The overall SCI score for the team.
+  - `SCI_ext`: SCI score for the extended mode.
+  - `SCI_core`: SCI score for the core mode.
+  - `ValleyPosition`: The position of the intersection point used to separate modes.
+
+### 2. Generating Schedules
+The Schedule Generator is primarily used to perform sensitivity analyses on the SCI in research contexts. If you need to generate synthetic schedules, follow these steps:
 #### Importing the function
 ```python
 from generate_schedule_lib import generate_schedule
@@ -90,34 +119,7 @@ schedule_df = generate_schedule(team_details, seed=42)
   - `Team`: Team identifier.
   - `start`: Start datetime of the shift.
   - `end`: End datetime of the shift.
-    
-### 2. Calculating SCI Scores
-#### Importing the function
-```python
-from sci_lib import calculate_SCI_scores
-```
-#### Calculating the SCI scores
 
-```python
-results_df = calculate_SCI_scores(df)
-```
-
-**df**: A pandas DataFrame containing the necessary column:
-- `start`: Start datetime of each shift.
-- `end`: End datetime of each shift.
-- `Team`: Identifier for the team (integer type).
-- `collaborator_bk`: Unique identifier for each collaborator.
-
-#### Understanding the Output:
-- **Type**: pandas.DataFrame
-- **Description**: A DataFrame containing the SCI scores and additional information for each team.
-- **Columns**:
-  - `Team`: Team identifier.
-  - `NumMembers`: Number of unique collaborators in the team.
-  - `SCI_team`: The overall SCI score for the team.
-  - `SCI_ext`: SCI score for the extended mode.
-  - `SCI_core`: SCI score for the core mode.
-  - `ValleyPosition`: The position of the intersection point used to separate modes.
 
 ## Examples
 ### Complete Workflow Example:
@@ -189,29 +191,6 @@ SCI Scores DataFrame:
 ## License
 
 This project is licensed under the terms of the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
-
-## Detailed Explanation of Schedule Generation
-
-1. **Random Seed Initialization**: If a `seed` is provided, the random number generator is initialized with it for reproducibility.
-
-2. **Date Generation**: Generates a list of all dates within the specified `start_date` and `end_date`.
-
-3. **Date Shuffling**: Randomizes the order of dates to evenly distribute shifts across the schedule.
-
-4. **Schedule Generation**:
-   - **Team Iteration**: Iterates over each team in `team_details`.
-   - **Collaborator Determination**: Calculates the total number of collaborators and determines their employment status (full-time or part-time).
-   - **Working Days Adjustment**: Adjusts the maximum number of working days based on whether the collaborator is full-time or part-time.
-   - **Shift Assignment**:
-     - **Shift Selection**: Assigns shifts to collaborators based on `max_shifts_per_collaborator`.
-     - **Freedom Level Application**: Determines shift assignment randomness using `freedom_level`.
-   - **Work Date Selection**: Randomly selects dates for each collaborator's shifts.
-
-5. **Data Processing**:
-   - **Filtering**: Removes any shifts that do not start with a digit (ensuring valid shift formats).
-   - **Time Adjustment**: Splits shift strings into start and end times and adjusts for overnight shifts.
-   - **Datetime Conversion**: Converts start and end times into datetime objects.
-   - **Quarter Calculation**: Adds a column to represent the quarter of the year.
 
 
 ## Detailed Explanation of SCI calculation
@@ -482,6 +461,29 @@ results_df = pd.DataFrame(results)
 ```
 - **Return**:
   - Returns the results_df containing the SCI scores and additional information for all teams.
+
+## Detailed Explanation of Schedule Generation
+
+1. **Random Seed Initialization**: If a `seed` is provided, the random number generator is initialized with it for reproducibility.
+
+2. **Date Generation**: Generates a list of all dates within the specified `start_date` and `end_date`.
+
+3. **Date Shuffling**: Randomizes the order of dates to evenly distribute shifts across the schedule.
+
+4. **Schedule Generation**:
+   - **Team Iteration**: Iterates over each team in `team_details`.
+   - **Collaborator Determination**: Calculates the total number of collaborators and determines their employment status (full-time or part-time).
+   - **Working Days Adjustment**: Adjusts the maximum number of working days based on whether the collaborator is full-time or part-time.
+   - **Shift Assignment**:
+     - **Shift Selection**: Assigns shifts to collaborators based on `max_shifts_per_collaborator`.
+     - **Freedom Level Application**: Determines shift assignment randomness using `freedom_level`.
+   - **Work Date Selection**: Randomly selects dates for each collaborator's shifts.
+
+5. **Data Processing**:
+   - **Filtering**: Removes any shifts that do not start with a digit (ensuring valid shift formats).
+   - **Time Adjustment**: Splits shift strings into start and end times and adjusts for overnight shifts.
+   - **Datetime Conversion**: Converts start and end times into datetime objects.
+   - **Quarter Calculation**: Adds a column to represent the quarter of the year.
 
 
 ## Additional Notes
