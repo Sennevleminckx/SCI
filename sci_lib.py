@@ -108,7 +108,7 @@ def calculate_SCI_scores(df):
     # Ensure time columns are in datetime format
     df['start'] = pd.to_datetime(df['start'])
     df['end'] = pd.to_datetime(df['end'])
-    df['Team'] = df['Team'].astype(int)
+    # df['Team'] = df['Team'].astype(int)  # Commented out as per your update
 
     # Initialize list to collect results
     results = []
@@ -135,83 +135,70 @@ def calculate_SCI_scores(df):
             # Calculate total overlap between two collaborators
             total_overlap = calculate_overlap(df1, df2)
 
-            # Normalize the overlap
-            max_collab_hours = min(
-                total_hours_per_collaborator[collaborator1],
-                total_hours_per_collaborator[collaborator2]
-            )
-            normalized_overlap = total_overlap / max_collab_hours if max_collab_hours > 0 else 0
+            # Normalize the overlap from each collaborator's perspective
+            total_hours_collaborator1 = total_hours_per_collaborator[collaborator1]
+            total_hours_collaborator2 = total_hours_per_collaborator[collaborator2]
 
-            # Update the matrix
-            matrix.loc[collaborator1, collaborator2] = normalized_overlap
-            matrix.loc[collaborator2, collaborator1] = normalized_overlap
+            normalized_overlap_1 = total_overlap / total_hours_collaborator1 if total_hours_collaborator1 > 0 else 0
+            normalized_overlap_2 = total_overlap / total_hours_collaborator2 if total_hours_collaborator2 > 0 else 0
 
-        # Extract the upper triangle of the matrix, excluding the diagonal
-        upper_triangle_indices = np.triu_indices_from(matrix, k=1)
-        upper_triangle_values = matrix.values[upper_triangle_indices]
+            # Update the matrix with asymmetric values
+            matrix.loc[collaborator1, collaborator2] = normalized_overlap_1
+            matrix.loc[collaborator2, collaborator1] = normalized_overlap_2
+
+        # Stack the matrix to get all pairwise overlaps
+        stacked_matrix = matrix.stack()
+
+        # Remove self-overlaps (diagonal elements)
+        data_off_diagonal = stacked_matrix[stacked_matrix.index.get_level_values(0) != stacked_matrix.index.get_level_values(1)]
+
+        # Get the overlap values
+        data_values = data_off_diagonal.values
 
         # Filter out zeros to focus on actual overlaps
-        data_nonzero = upper_triangle_values[upper_triangle_values > 0]
+        data_nonzero = data_values[data_values > 0]
 
         # Initialize variables
         SCI_team = np.nan
         SCI_ext = np.nan
         SCI_core = np.nan
         valley_position = None
-        is_bimodal = False
 
         # Proceed if we have data
         if len(data_nonzero) > 0:
-            # Compute SCI_team
+            # Compute SCI_team using all data
             SCI_team = compute_SCI(data_nonzero)
 
-            # Proceed to check bimodality if enough data
-            if len(data_nonzero) > 1:
-                data_nonzero_reshaped = data_nonzero.reshape(-1, 1)
+            # Proceed to fit GMM with 2 components
+            data_nonzero_reshaped = data_nonzero.reshape(-1, 1)
 
-                # Fit GMMs with 1 and 2 components
-                gmm1 = GaussianMixture(n_components=1)
-                gmm2 = GaussianMixture(n_components=2)
+            # Fit GMM with 2 components
+            gmm2 = GaussianMixture(n_components=2)
+            gmm2.fit(data_nonzero_reshaped)
 
-                gmm1.fit(data_nonzero_reshaped)
-                gmm2.fit(data_nonzero_reshaped)
+            # Find intersection point between the two Gaussians
+            x_min, x_max = data_nonzero.min(), data_nonzero.max()
+            x_range = (x_min, x_max)
+            intersection = find_gaussian_intersection(gmm2, x_range)
 
-                # Compute BIC scores
-                bic1 = gmm1.bic(data_nonzero_reshaped)
-                bic2 = gmm2.bic(data_nonzero_reshaped)
-
-                # Select the model with the lower BIC
-                if bic2 < bic1:
-                    # Bimodal distribution
-                    is_bimodal = True
-
-                    # Find intersection point between the two Gaussians
-                    x_min, x_max = data_nonzero.min(), data_nonzero.max()
-                    x_range = (x_min, x_max)
-                    intersection = find_gaussian_intersection(gmm2, x_range)
-
-                    if intersection is not None and x_min < intersection < x_max:
-                        threshold = intersection
-                        valley_position = threshold
-
-                        # Separate data into mode 1 and mode 2 based on the threshold
-                        mode1_values = data_nonzero[data_nonzero < threshold]
-                        mode2_values = data_nonzero[data_nonzero >= threshold]
-
-                        # Calculate SCI_ext for values below the valley (mode 1)
-                        SCI_ext = compute_SCI(mode1_values)
-
-                        # Calculate SCI_core for values above the valley (mode 2)
-                        SCI_core = compute_SCI(mode2_values)
-                    else:
-                        # Unable to find a valid intersection
-                        pass  # SCI_ext and SCI_core remain np.nan
-                else:
-                    # Unimodal distribution
-                    pass  # SCI_ext and SCI_core remain np.nan
+            if intersection is not None and x_min < intersection < x_max:
+                threshold = intersection
             else:
-                # Not enough data to check bimodality
-                pass  # SCI_ext and SCI_core remain np.nan
+                # Unable to find a valid intersection, use mean as threshold
+                threshold = data_nonzero.mean()
+
+            valley_position = threshold
+
+            # Separate data into mode 1 and mode 2 based on the threshold
+            mode1_values = data_nonzero[data_nonzero < threshold]
+            mode2_values = data_nonzero[data_nonzero >= threshold]
+
+            # Calculate SCI_ext for values below the threshold (mode 1)
+            SCI_ext = compute_SCI(mode1_values)
+
+            # Calculate SCI_core for values above the threshold (mode 2)
+            SCI_core = compute_SCI(mode2_values)
+
         else:
             # No data to compute SCI_team
             pass  # SCI_team remains np.nan
@@ -224,7 +211,6 @@ def calculate_SCI_scores(df):
             'SCI_ext': SCI_ext,
             'SCI_core': SCI_core,
             'ValleyPosition': valley_position,
-            'IsBimodal': is_bimodal
         })
 
     # Convert the results into a DataFrame
