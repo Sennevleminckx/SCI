@@ -20,6 +20,7 @@ The project consists of two main components:
 - [License](#license)
 - [Detailed Explanation of Schedule Generation](#detailed-explanation-of-schedule-generation)
 - [Detailed Explanation of SCI Calculation](#detailed-explanation-of-sci-calculation)
+- [Additional Notes](#additional-notes)
 
 ## Features
 - **Randomized Scheduling**: Generates work schedules with customizable parameters for teams and collaborators.
@@ -27,7 +28,7 @@ The project consists of two main components:
 - **Shift Preferences**: Allows for varying degrees of randomness in shift assignments.
 - **Overlap Calculation**: Computes total overlapping hours between collaborators.
 - **SCI Computation**: Calculates overall SCI scores and separate scores for different collaboration modes within teams.
-- **Bimodality Analysis**: Identifies bimodal collaboration patterns using Gaussian Mixture Models.
+- **Gaussian Mixture Modeling**: Uses Gaussian Mixture Models to identify collaboration modes.
 
 
 ## Installation
@@ -81,7 +82,7 @@ team_details = {
 ```python
 schedule_df = generate_schedule(team_details, seed=42)
 ```
-note: Due to the random elements in schedule generation, results may vary between runs unless a `seed` is set (seed is optional, Default = None).
+*note: Due to the random elements in schedule generation, results may vary between runs unless a `seed` is set (seed is optional, Default = None).*
 
 #### Understanding the output
 - schedule_df is a pandas DataFrame containing:
@@ -114,10 +115,9 @@ results_df = calculate_SCI_scores(df)
   - `Team`: Team identifier.
   - `NumMembers`: Number of unique collaborators in the team.
   - `SCI_team`: The overall SCI score for the team.
-  - `SCI_ext`: SCI score for the external mode (if applicable).
-  - `SCI_core`: SCI score for the core mode (if applicable).
-  - `ValleyPosition`: The position of the intersection point used to separate modes (if applicable).
-  - `IsBimodal`: Boolean indicating whether the data was identified as bimodal.
+  - `SCI_ext`: SCI score for the extended mode.
+  - `SCI_core`: SCI score for the core mode.
+  - `ValleyPosition`: The position of the intersection point used to separate modes.
 
 ## Examples
 ### Complete Workflow Example:
@@ -258,6 +258,16 @@ for team in tqdm(df['Team'].unique(), desc='Processing Teams', unit='team'):
 
 ```python
 def calculate_overlap(df1, df2):
+    """
+    Calculate the total overlap in hours between two collaborators.
+
+    Parameters:
+    - df1 (DataFrame): DataFrame for collaborator 1 with 'start' and 'end' columns.
+    - df2 (DataFrame): DataFrame for collaborator 2 with 'start' and 'end' columns.
+
+    Returns:
+    - total_overlap (float): The total overlap in hours.
+    """
     # Convert start and end times to NumPy arrays
     start1 = df1['start'].values.astype('datetime64[ns]')
     end1 = df1['end'].values.astype('datetime64[ns]')
@@ -281,6 +291,8 @@ def calculate_overlap(df1, df2):
 4. **Overlap Matrix Construction**
 
 - **Matrix Initialization**: Creates a square matrix (DataFrame) where rows and columns represent collaborators.
+- **Normalization**:
+  - The overlap is normalized from each collaborator’s perspective separately, resulting in an asymmetric matrix.  
 - **Matrix Population**: Fills the `matrix` with normalized overlap values for each pair of collaborators.
 
 ```python
@@ -289,36 +301,34 @@ matrix = pd.DataFrame(0.0, index=collaborators, columns=collaborators)
 
 # Calculate overlaps between all pairs of collaborators
 for collaborator1, collaborator2 in combinations(collaborators, 2):
-    df1 = team_data[team_data['collaborator_bk'] == collaborator1]
-    df2 = team_data[team_data['collaborator_bk'] == collaborator2]
+    # [Overlap calculation]
+    # Normalize the overlap from each collaborator's perspective
+    normalized_overlap_1 = total_overlap / total_hours_collaborator1 if total_hours_collaborator1 > 0 else 0
+    normalized_overlap_2 = total_overlap / total_hours_collaborator2 if total_hours_collaborator2 > 0 else 0
 
-    # Calculate total overlap between two collaborators
-    total_overlap = calculate_overlap(df1, df2)
-
-    # Normalize the overlap
-    max_collab_hours = min(
-        total_hours_per_collaborator[collaborator1],
-        total_hours_per_collaborator[collaborator2]
-    )
-    normalized_overlap = total_overlap / max_collab_hours if max_collab_hours > 0 else 0
-
-    # Update the matrix
-    matrix.loc[collaborator1, collaborator2] = normalized_overlap
-    matrix.loc[collaborator2, collaborator1] = normalized_overlap
+    # Update the matrix with asymmetric values
+    matrix.loc[collaborator1, collaborator2] = normalized_overlap_1
+    matrix.loc[collaborator2, collaborator1] = normalized_overlap_2
 ```
 
 5. **Data Extraction for SCI Computation**
 
-- **Upper Triangle Extraction**: Extracts the upper triangle of the overlap matrix (excluding the diagonal) to obtain all unique pairs without redundancy.
+- **Matrix Stacking**: Stacks the asymmetric matrix to get all pairwise overlaps.
+- **Removing Self-Overlaps**: Removes diagonal elements (self-overlaps).
 - **Data Filtering**: Filters out zero values to focus on actual overlaps, resulting in an array of non-zero normalized overlaps (`data_nonzero`).
 
 ```python
-# Extract the upper triangle of the matrix, excluding the diagonal
-upper_triangle_indices = np.triu_indices_from(matrix, k=1)
-upper_triangle_values = matrix.values[upper_triangle_indices]
+# Stack the matrix to get all pairwise overlaps
+stacked_matrix = matrix.stack()
+
+# Remove self-overlaps (diagonal elements)
+data_off_diagonal = stacked_matrix[stacked_matrix.index.get_level_values(0) != stacked_matrix.index.get_level_values(1)]
+
+# Get the overlap values
+data_values = data_off_diagonal.values
 
 # Filter out zeros to focus on actual overlaps
-data_nonzero = upper_triangle_values[upper_triangle_values > 0]
+data_nonzero = data_values[data_values > 0]
 ```
 
 6. **SCI_team Computation**
@@ -355,46 +365,28 @@ def compute_SCI(mode_values):
 # Compute SCI_team
 SCI_team = compute_SCI(data_nonzero)
 ```
-7. **Bimodality Check**
-
-- **Data Sufficiency**: Proceeds if there is more than one non-zero overlap value.
+7. **Gaussian Mixture Modeling**
 - **GMM Fitting**:
-  - Fits *Gaussian Mixture Models (GMMs)* with one and two components to the data using [GaussianMixture](https://scikit-learn.org/stable/modules/mixture.html) from scikit-learn.
-- **Model Selection**:
-    - Computes the *Bayesian Information Criterion (BIC)* for both models.
-    - If the BIC of the two-component model is lower than that of the one-component model, the data is considered bimodal.
-
-```python
-if len(data_nonzero) > 1:
-    data_nonzero_reshaped = data_nonzero.reshape(-1, 1)
-
-    # Fit GMMs with 1 and 2 components
-    gmm1 = GaussianMixture(n_components=1)
-    gmm2 = GaussianMixture(n_components=2)
-
-    gmm1.fit(data_nonzero_reshaped)
-    gmm2.fit(data_nonzero_reshaped)
-
-    # Compute BIC scores
-    bic1 = gmm1.bic(data_nonzero_reshaped)
-    bic2 = gmm2.bic(data_nonzero_reshaped)
-
-    # Select the model with the lower BIC
-    if bic2 < bic1:
-        is_bimodal = True
-        # Proceed to find intersection and compute SCI_ext and SCI_core
-```
-
-8. **Mode Separation**
-
+  - Fits *Gaussian Mixture Models (GMMs)* with two components to the data using [GaussianMixture](https://scikit-learn.org/stable/modules/mixture.html) from scikit-learn.
 - **Intersection Point Detection**:
   - Uses the `find_gaussian_intersection(gmm, x_range)` function to find the `intersection` point (threshold) between the two Gaussian components.
+  - If unsuccessful, uses the mean of the data as the threshold.
 - **Algorithm**:
-  - Defines a `function gaussians_diff(x)` that computes the difference between the weighted log probabilities of the two Gaussian components at point x.
+  - Uses the `function gaussians_diff(x)` that computes the difference between the weighted log probabilities of the two Gaussian components at point x.
   - Uses *Brent’s method* ([brentq](https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.brentq.html)) to find the root of `gaussians_diff(x)`, which is the `intersection` point.
 
 ```python
 def find_gaussian_intersection(gmm, x_range):
+    """
+    Find the intersection point between two Gaussian components in a GMM.
+
+    Parameters:
+    - gmm (GaussianMixture): The fitted Gaussian Mixture Model with two components.
+    - x_range (tuple): The range of x values to search for the intersection.
+
+    Returns:
+    - intersection (float): The x-value where the two Gaussians intersect.
+    """
     def gaussians_diff(x):
         return (
             gmm.weights_[0] * gmm._estimate_weighted_log_prob(np.array([[x]]))[:, 0] -
@@ -406,12 +398,31 @@ def find_gaussian_intersection(gmm, x_range):
         return intersection
     except ValueError:
         return None
+```
 
-# Find intersection point
+```python
+# Proceed to fit GMM with 2 components
+data_nonzero_reshaped = data_nonzero.reshape(-1, 1)
+
+# Fit GMM with 2 components
+gmm2 = GaussianMixture(n_components=2)
+gmm2.fit(data_nonzero_reshaped)
+
+# Find intersection point between the two Gaussians
 x_min, x_max = data_nonzero.min(), data_nonzero.max()
 x_range = (x_min, x_max)
 intersection = find_gaussian_intersection(gmm2, x_range)
+
+if intersection is not None and x_min < intersection < x_max:
+    threshold = intersection
+else:
+    # Unable to find a valid intersection, use mean as threshold
+    threshold = data_nonzero.mean()
+
+valley_position = threshold
 ```
+
+8. **Mode Separation**
 
 - **Data Segmentation**:
   - Separates the normalized overlap values into two modes:
@@ -459,7 +470,6 @@ results.append({
     'SCI_ext': SCI_ext,
     'SCI_core': SCI_core,
     'ValleyPosition': valley_position,
-    'IsBimodal': is_bimodal
 })
 ```
 
@@ -473,3 +483,11 @@ results_df = pd.DataFrame(results)
 - **Return**:
   - Returns the results_df containing the SCI scores and additional information for all teams.
 
+
+## Additional Notes
+
+- **Normalization of Overlaps**: Overlaps are normalized from each collaborator’s perspective separately, resulting in an asymmetric overlap matrix.
+- **Gaussian Mixture Modeling**: The function fits a GMM with two components regardless of the data distribution, aiming to identify potential collaboration modes.
+- **Threshold Determination**: If the intersection point between the two Gaussians cannot be found, the mean of the data is used as the threshold for mode separation.
+- **Data Requirements**: Ensure that your DataFrame contains sufficient overlapping schedules to compute meaningful SCI scores.
+- **Performance Considerations**: Processing large datasets may take time; progress is displayed using `tqdm`.
