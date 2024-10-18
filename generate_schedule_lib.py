@@ -4,26 +4,26 @@ from datetime import datetime, timedelta
 
 def adjusted_max_days(proportion, total_days):
     """
-    Adjusts the maximum number of working days based on the collaborator's work proportion.
+    Adjust the maximum number of working days based on the collaborator's work proportion.
 
-    Parameters:
-    - proportion (float): The proportion of full-time work (1 for full-time, <1 for part-time).
-    - total_days (int): Total number of days in the schedule.
+    Args:
+        proportion (float): The proportion of full-time work (1 for full-time, <1 for part-time).
+        total_days (int): Total number of days in the schedule.
 
     Returns:
-    - int: The adjusted maximum number of working days.
+        int: The adjusted maximum number of working days.
     """
     return min(int(66 * proportion), total_days)
 
 def adjust_times(row):
     """
-    Adjusts shift times, especially for shifts that go past midnight.
+    Adjust shift times, especially for shifts that go past midnight.
 
-    Parameters:
-    - row (Series): A pandas Series representing a row in a DataFrame.
+    Args:
+        row (pandas.Series): A row containing 'timesheet_interval', 'start', and 'end'.
 
     Returns:
-    - Series: A Series containing adjusted 'start' and 'end' datetime objects.
+        pandas.Series: A Series containing adjusted 'start' and 'end' datetime objects.
     """
     # Parse start and end times
     start_time = datetime.strptime(row['timesheet_interval'] + row['start'], '%Y-%m-%d%H%M')
@@ -37,14 +37,29 @@ def adjust_times(row):
 
 def generate_schedule(team_details, seed=None):
     """
-    Generates a schedule for collaborators based on team details.
+    Generate a schedule for collaborators based on team details.
 
-    Parameters:
-    - team_details (dict): A dictionary containing team information, dates, shifts, etc.
-    - seed (int, optional): An optional seed for random number generation to ensure reproducibility.
+    Args:
+        team_details (dict): A dictionary containing team information, dates, shifts, etc.
+            Example structure:
+            {
+                'start_date': datetime object,
+                'end_date': datetime object,
+                'teams': {
+                    team_id: {
+                        'team_size_fulltime': int,
+                        'team_size_parttime': int,
+                        'shifts': list of str,
+                        'max_shifts_per_collaborator': int,
+                        'freedom_level': float (0 to 1)
+                    },
+                    ...
+                }
+            }
+        seed (int, optional): Seed for random number generation to ensure reproducibility.
 
     Returns:
-    - pandas.DataFrame: A DataFrame containing the generated schedule with start and end times.
+        pandas.DataFrame: A DataFrame containing the generated schedule with 'start' and 'end' times.
     """
     # Set the random seed if provided for reproducibility
     if seed is not None:
