@@ -5,8 +5,8 @@ This project provides tools for generating randomized work schedules for teams a
 
 The project consists of two main components:
 
-1.**`SCI Calculator`**: A function that computes SCI scores for each team by analyzing the overlapping work schedules, providing insights into collaboration patterns within teams.
-2. **`Schedule Generator`**: A script used to generate randomized work schedules for collaborators across different teams. This is primarily designed for performing sensitivity analyses on the SCI, as utilized in research studies. If you have your own dataset with schedules, you can directly use the `SCI Calculator` without generating new schedules.
+1.**`SCI Calculator`**: A function that computes SCI scores for each team by analyzing task-aware overlapping work schedules, providing insights into collaboration patterns within teams.
+2. **`Schedule Generator`**: A script used to generate randomized work schedules for collaborators across different teams. It is a function that generates single-shift (9:00–17:00) schedules on weekdays. It distributes collaborators across multiple tasks and can be customized using parameters such as team sizes, number of tasks, and daily time allocation per task. This is primarily designed for performing sensitivity analyses on the SCI, as utilized in research studies. If you have your own dataset with schedules, you can directly use the `SCI Calculator` without generating new schedules.
 
 *Note: The Schedule Generator is used to 
 
@@ -25,10 +25,10 @@ The project consists of two main components:
 - [Additional Notes](#additional-notes)
 
 ## Features
-- **SCI Computation**: Calculates overall SCI scores and separate scores for different collaboration modes within teams.
-- **Overlap Calculation**: Computes total overlapping hours between collaborators.
+- **Task-Aware SCI Computation**: Calculates overall SCI scores and separate scores for different collaboration modes within teams, specifically when collaborators share the same task.
+- **Overlap Calculation**: Computes total overlapping hours between collaborators if they work on the same task..
 - **Gaussian Mixture Modeling**: Uses Gaussian Mixture Models to identify collaboration modes.
-- **Randomized Scheduling **(Optional): Generates work schedules with customizable parameters for teams and collaborators, primarily for sensitivity analyses.
+- **Randomized Scheduling**(Optional): Generates work schedules with customizable parameters for teams and collaborators, primarily for sensitivity analyses.
 
 
 ## Installation
@@ -62,6 +62,7 @@ results_df = calculate_SCI_scores(df)
 - `end`: End datetime of each shift.
 - `Team`: Identifier for the team (integer type).
 - `collaborator_bk`: Unique identifier for each collaborator.
+- `Task`: Identifier for the task or activity (string). Overlaps are only counted if Task is identical for both collaborators.
 
 #### Understanding the Output:
 - **Type**: pandas.DataFrame
@@ -75,13 +76,14 @@ results_df = calculate_SCI_scores(df)
   - `ValleyPosition`: The position of the intersection point used to separate modes.
 
 ### 2. Generating Schedules
-The Schedule Generator is primarily used to perform sensitivity analyses on the SCI in research contexts. If you need to generate synthetic schedules, follow these steps:
+The Schedule Generator creates single-shift schedules for weekdays (9:00–17:00). It distributes collaborators across tasks according to parameters such as full-time/part-time, maximum tasks per collaborator, and a “freedom_level” that influences time split among tasks. The Schedule Generator is primarily used to perform sensitivity analyses on the SCI in research contexts. If you need to generate synthetic schedules, follow these steps:
 #### Importing the function
 ```python
 from generate_schedule_lib import generate_schedule
 ```
 #### Defining Team Details
-Create a dictionary containing team configurations and scheduling parameters.
+Below is an example dictionary specifying schedule generation parameters. 
+*Note: Weekends are excluded automatically.*
 ```python
 import pandas as pd
 from datetime import datetime
@@ -107,11 +109,20 @@ team_details = {
     }
 }
 ```
+Key parameters inside each team’s dictionary:
+- `MTS_size_fulltime`: Number of full-time collaborators.
+- `MTS_size_parttime`: Number of part-time collaborators.
+- `tasks`: List of tasks assigned to the team.
+- `max_tasks_per_collaborator`: Maximum number of tasks a collaborator can work on in a day.
+- `freedom_level` (optional, default=1): Fraction of the day each collaborator can distribute among tasks.
+  - A value of 1 means an even split across tasks.
+  - A lower value (e.g., 0.5) means the primary task consumes more of the workday.
+
 #### Generating the Schedule
 ```python
 schedule_df = generate_schedule(team_details, seed=42)
 ```
-*note: Due to the random elements in schedule generation, results may vary between runs unless a `seed` is set (seed is optional, Default = None).*
+*Note: Due to the random elements in schedule generation, results may vary between runs unless a `seed` is set (seed is optional, Default = None).*
 
 #### Understanding the output
 - schedule_df is a pandas DataFrame containing:
@@ -119,6 +130,7 @@ schedule_df = generate_schedule(team_details, seed=42)
   - `Team`: Team identifier.
   - `start`: Start datetime of the shift.
   - `end`: End datetime of the shift.
+  - `Task`: Task name for that interval.
 
 
 ## Examples
@@ -165,17 +177,17 @@ print(sci_scores_df)
 ### Sample Output:
 ```python
 Schedule DataFrame:
-  collaborator_bk       Team               start                 end   month
-0   TeamAlpha_2  TeamAlpha 2023-01-02 08:00:00 2023-01-02 16:00:00  2023Q1
-1     TeamBeta_1   TeamBeta 2023-01-02 09:00:00 2023-01-02 17:00:00  2023Q1
-2   TeamAlpha_3  TeamAlpha 2023-01-03 16:00:00 2023-01-04 00:00:00  2023Q1
-3     TeamBeta_2   TeamBeta 2023-01-03 09:00:00 2023-01-03 17:00:00  2023Q1
-4   TeamAlpha_1  TeamAlpha 2023-01-04 08:00:00 2023-01-04 16:00:00  2023Q1
+  collaborator_bk       Team               start                 end   Task   month
+0      TeamBeta_1   TeamBeta 2023-01-03 09:00:00 2023-01-03 12:00:00  TaskY  2023Q1
+1    TeamAlpha_3   TeamAlpha 2023-01-02 09:00:00 2023-01-02 16:00:00  TaskB  2023Q1
+2      TeamBeta_2   TeamBeta 2023-01-05 09:00:00 2023-01-05 17:00:00  TaskX  2023Q1
+3    TeamAlpha_1   TeamAlpha 2023-01-06 09:00:00 2023-01-06 12:00:00  TaskA  2023Q1
+4      TeamBeta_3   TeamBeta 2023-01-06 09:00:00 2023-01-06 17:00:00  TaskZ  2023Q1
 
 SCI Scores DataFrame:
-        Team  NumMembers  SCI_team  SCI_ext  SCI_core  ValleyPosition  IsBimodal
-0  TeamAlpha           5  0.126633      NaN       NaN             NaN      False
-1   TeamBeta           5  0.204586      NaN       NaN             NaN      False
+        Team  NumMembers  SCI_team  SCI_ext  SCI_core  ValleyPosition
+0  TeamAlpha           5  0.126633      NaN       NaN             NaN
+1   TeamBeta           3  0.204586      NaN       NaN             NaN
 ```
 *Note: The sample data may not be sufficient to produce meaningful SCI scores. In practice, use a dataset with detailed and overlapping schedules to compute accurate SCI scores.*
 
@@ -215,13 +227,13 @@ df['Team'] = df['Team'].astype(int)
 
 ```python
 for team in tqdm(df['Team'].unique(), desc='Processing Teams', unit='team'):
-    team_data = df[df['Team'] == team]
-    collaborators = team_data['collaborator_bk'].unique()
-    num_unique_members = len(collaborators)
-    
-    total_hours_per_collaborator = team_data.groupby('collaborator_bk').apply(
-        lambda x: ((x['end'] - x['start']).sum().total_seconds() / 3600)
-    )
+        team_data = df[df['Team'] == team]
+        collaborators = team_data['collaborator_bk'].unique()
+        num_unique_members = len(collaborators)
+
+        total_hours_per_collaborator = team_data.groupby('collaborator_bk').apply(
+            lambda x: ((x['end'] - x['start']).sum().total_seconds() / 3600)
+        )
 ```
 
 3. **Overlap Calculation**
@@ -232,39 +244,36 @@ for team in tqdm(df['Team'].unique(), desc='Processing Teams', unit='team'):
 - **Algorithm**:
   - Converts the `start` and `end` times of both collaborators to NumPy arrays.
   - Computes the maximum of the start times and the minimum of the end times to find overlapping intervals.
-  - Calculates the `overlap` duration in hours, setting negative overlaps to zero.
+  - Calculates the `overlap` duration in hours, if two collaborators share the same taks, setting negative overlaps to zero.
   - Sums all overlaps to get the total overlapping hours (`total_overlap`).
 
 ```python
 def calculate_overlap(df1, df2):
-    """
-    Calculate the total overlap in hours between two collaborators.
+        """
+        Calculate the total overlap in hours between two collaborators, considering tasks.
+        """
+        total_overlap = 0.0
 
-    Parameters:
-    - df1 (DataFrame): DataFrame for collaborator 1 with 'start' and 'end' columns.
-    - df2 (DataFrame): DataFrame for collaborator 2 with 'start' and 'end' columns.
+        # Find the set of tasks that both collaborators have worked on
+        tasks_shared = set(df1['Task']).intersection(set(df2['Task']))
 
-    Returns:
-    - total_overlap (float): The total overlap in hours.
-    """
-    # Convert start and end times to NumPy arrays
-    start1 = df1['start'].values.astype('datetime64[ns]')
-    end1 = df1['end'].values.astype('datetime64[ns]')
-    start2 = df2['start'].values.astype('datetime64[ns]')
-    end2 = df2['end'].values.astype('datetime64[ns]')
+        for task in tasks_shared:
+            df1_task = df1[df1['Task'] == task]
+            df2_task = df2[df2['Task'] == task]
 
-    # Compute the maximum of the start times and the minimum of the end times
-    latest_start = np.maximum(start1[:, None], start2)
-    earliest_end = np.minimum(end1[:, None], end2)
+            start1 = df1_task['start'].values.astype('datetime64[ns]')
+            end1 = df1_task['end'].values.astype('datetime64[ns]')
+            start2 = df2_task['start'].values.astype('datetime64[ns]')
+            end2 = df2_task['end'].values.astype('datetime64[ns]')
 
-    # Calculate the overlap in hours
-    overlap = (earliest_end - latest_start) / np.timedelta64(1, 'h')
-    overlap[overlap < 0] = 0  # Set negative overlaps to zero
+            latest_start = np.maximum(start1[:, None], start2)
+            earliest_end = np.minimum(end1[:, None], end2)
+            overlap = (earliest_end - latest_start) / np.timedelta64(1, 'h')
+            overlap[overlap < 0] = 0
 
-    # Sum all overlaps to get the total overlap
-    total_overlap = np.sum(overlap)
+            total_overlap += np.sum(overlap)
 
-    return total_overlap
+        return total_overlap
 ```
 
 4. **Overlap Matrix Construction**
@@ -278,14 +287,18 @@ def calculate_overlap(df1, df2):
 # Initialize the matrix for storing normalized overlap values
 matrix = pd.DataFrame(0.0, index=collaborators, columns=collaborators)
 
-# Calculate overlaps between all pairs of collaborators
+# Calculate overlaps for all pairs
 for collaborator1, collaborator2 in combinations(collaborators, 2):
-    # [Overlap calculation]
-    # Normalize the overlap from each collaborator's perspective
+    df1 = team_data[team_data['collaborator_bk'] == collaborator1]
+    df2 = team_data[team_data['collaborator_bk'] == collaborator2]
+
+    total_overlap = calculate_overlap(df1, df2)
+    total_hours_collaborator1 = total_hours_per_collaborator[collaborator1]
+    total_hours_collaborator2 = total_hours_per_collaborator[collaborator2]
+
     normalized_overlap_1 = total_overlap / total_hours_collaborator1 if total_hours_collaborator1 > 0 else 0
     normalized_overlap_2 = total_overlap / total_hours_collaborator2 if total_hours_collaborator2 > 0 else 0
 
-    # Update the matrix with asymmetric values
     matrix.loc[collaborator1, collaborator2] = normalized_overlap_1
     matrix.loc[collaborator2, collaborator1] = normalized_overlap_2
 ```
@@ -464,9 +477,9 @@ results_df = pd.DataFrame(results)
 
 ## Detailed Explanation of Schedule Generation
 
-1. **Random Seed Initialization**: If a `seed` is provided, the random number generator is initialized with it for reproducibility.
+1. **Random Seed Initialization** (optional): If a `seed` is provided, the random number generator is initialized with it for reproducibility.
 
-2. **Date Generation**: Generates a list of all dates within the specified `start_date` and `end_date`.
+2. **Date Generation**: Generates a list of all dates (weekdays) within the specified `start_date` and `end_date`.
 
 3. **Date Shuffling**: Randomizes the order of dates to evenly distribute shifts across the schedule.
 
@@ -474,20 +487,15 @@ results_df = pd.DataFrame(results)
    - **Team Iteration**: Iterates over each team in `team_details`.
    - **Collaborator Determination**: Calculates the total number of collaborators and determines their employment status (full-time or part-time).
    - **Working Days Adjustment**: Adjusts the maximum number of working days based on whether the collaborator is full-time or part-time.
-   - **Shift Assignment**:
-     - **Shift Selection**: Assigns shifts to collaborators based on `max_shifts_per_collaborator`.
-     - **Freedom Level Application**: Determines shift assignment randomness using `freedom_level`.
-   - **Work Date Selection**: Randomly selects dates for each collaborator's shifts.
-
-5. **Data Processing**:
-   - **Filtering**: Removes any shifts that do not start with a digit (ensuring valid shift formats).
-   - **Time Adjustment**: Splits shift strings into start and end times and adjusts for overnight shifts.
-   - **Datetime Conversion**: Converts start and end times into datetime objects.
-   - **Quarter Calculation**: Adds a column to represent the quarter of the year.
+   - **Task Assignment**:
+     - **Task Selection**: Assigns task to collaborators based on `max_tasks_per_collaborator`. Each collaborator has a “main task” plus optional secondary tasks.
+     - **Freedom Level Application**: Splits the 9:00–17:00 window among assigned tasks, governed by freedom_level.
+   - **Work Date Selection**: Randomly selects dates for each collaborator's workdays.
 
 
 ## Additional Notes
 
+- **Task Awareness**: Overlaps are computed only when collaborators share the same Task.
 - **Normalization of Overlaps**: Overlaps are normalized from each collaborator’s perspective separately, resulting in an asymmetric overlap matrix.
 - **Gaussian Mixture Modeling**: The function fits a GMM with two components regardless of the data distribution, aiming to identify potential collaboration modes.
 - **Threshold Determination**: If the intersection point between the two Gaussians cannot be found, the mean of the data is used as the threshold for mode separation.
