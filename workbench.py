@@ -4,15 +4,15 @@ from sci_lib import calculate_SCI_scores
 
 # Define team details
 team_details = {
-    'start_date': pd.to_datetime('2023-01-01'),
-    'end_date': pd.to_datetime('2023-03-31'),
+    'start_date': datetime(2021, 1, 1),
+    'end_date': datetime(2021, 3, 31),
     'teams': {
         1: {
-            'team_size_fulltime': 5,
-            'team_size_parttime': 3,
-            'shifts': ['0800-1600', '1600-0000', '0000-0800'],
-            'max_shifts_per_collaborator': 2,
-            'freedom_level': 0.8
+            'MTS_size_fulltime': 15,
+            'MTS_size_parttime': 5,
+            'tasks': ["A", "B", "C"],
+            'max_tasks_per_collaborator': 2,
+            'freedom_level': .05  # Time is equally split among tasks
         },
         # Add more teams as needed
     }
